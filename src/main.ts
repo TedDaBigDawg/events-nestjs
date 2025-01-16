@@ -20,7 +20,7 @@ async function bootstrap() {const app = await NestFactory.create<NestExpressAppl
 
   // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://isceauth.onrender.com', 'https://eventnest-slbg.onrender.com'],
+    origin: ['http://localhost:3001', 'https://isceauth.onrender.com', 'https://eventnest-slbg.onrender.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
