@@ -1,0 +1,270 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// model User {
+//   id               String     @id @default(uuid())
+//   email            String     @unique
+//   hashedPassword   String
+//   createdAt        DateTime   @default(now())
+//   updateAt         DateTime   @updatedAt
+//   events           Event[]
+// }
+
+// model Event {
+//   id           String       @id @default(uuid())
+//   title        String
+//   description  String?
+//   location     String?
+//   image        String?
+//   clean_name   String?      @unique
+//   start_date   DateTime
+//   end_date     DateTime?
+//   user_id      String       
+//   user         User         @relation(fields: [user_id], references: [id])
+//   prices       Price[]
+//   gallery      Gallery[]
+//   attendees    Attendee[]
+//   eventUrl     EventUrl[]
+//   eventChat    EventChat[]
+// }
+
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  location    String
+  town        String
+  image       String?
+  cleanName   String?    @unique
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  deletedAt   DateTime?
+  userId      String?
+  prices      Price[]   // One-to-many relationship with Price
+  galleries   Gallery[] // One-to-many relationship with Gallery
+  attendees  Attendee[]  // One-to-many relationship with Attendee
+  invitations  Invitation[]  // One-to-many relationship with Attendee
+  chat_room  ChatRoom[]  // One-to-many relationship with Attendee
+}
+
+model Price {
+  id           String   @id @default(uuid())
+  eventId      String?
+  event        Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade) // Relation to Event
+  title        String
+  description  String?
+  amount       Int
+  attendees    Int?
+  orderAmount  Int      @default(0) @map("order_amount")
+  withChips    String?  @default("without")
+  payments      Payment[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+}
+
+
+// model Price {
+//   id            String      @id @default(uuid())
+//   event_id      String
+//   event         Event       @relation(fields: [event_id], references: [id])
+//   title         String
+//   description   String?
+//   amount        Int 
+//   attendees     Int?
+//   order_amount  Int         @default(0)
+//   withChips     String?     @default("without")
+//   attendee      Attendee[]
+// }
+
+model Gallery {
+  id       String  @id @default(uuid())
+  eventId  String?
+  event    Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade) // Relation to Event
+  name     String
+  image    String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+}
+// model Gallery {
+//   id            String   @id @default(uuid())
+//   event_id      String
+//   event         Event    @relation(fields: [event_id], references: [id])
+//   name          String
+//   image         String?
+// }
+
+
+model Invitation {
+  id                  String  @id @default(uuid())
+  invitation_name     String
+  invitation_desc     String
+  event_id            String
+  event               Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  event_name          String
+  event_invitee_name  String? // Optional field
+  event_invitee_email String? // Optional field
+  event_invitee_phone String? // Optional field
+  isReusable          Boolean  @default(false) 
+  invite_link         String?  // Optional: Store the generated invite link
+  token               String  @unique
+  accepted            Boolean
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+
+  payments        Payment[]
+}
+
+
+
+
+
+model Attendee {
+  id           String  @id @default(uuid())
+  eventId      String 
+  event        Event   @relation(fields: [eventId], references: [id], onDelete: Cascade) // Relation to Event
+  eventName    String?
+  image        String?
+  name         String
+  email        String? 
+  phone        String? 
+  priceCategory String?
+  ticket       String?
+  link         String?
+  token        String?
+  checkedIn    Boolean? @default(false)
+  thankyouMail Boolean? @default(false) 
+  messages     ChatMessage[]
+  chatRooms    ChatRoom[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+
+  @@unique([eventId, email]) // Compound unique constraint for email within each event
+  @@unique([eventId, phone]) // Compound unique constraint for phone within each event
+}
+
+model Token {
+  id     String  @id @default(uuid())
+  token  String  
+  used   Boolean @default(false)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+}
+
+// model EventUrl {
+//   id               String  @id @default(uuid())
+//   eventId          String
+//   event            Event   @relation(fields: [eventId], references: [id]) 
+//   eventAttendeeId  String?
+//   eventUrl         String 
+//   deviceType       String  
+// }
+
+model EventUrl {
+  id                String  @id @default(uuid())
+  access_code       String
+  authorization_url String
+  reference         String
+  metadata          String
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+}
+
+
+model Payment {
+  id             String   @id @default(uuid())
+  userId         String
+  invitationId      String 
+  invitation        Invitation   @relation(fields: [invitationId], references: [id])
+  name           String
+  email          String? 
+  phone          String?
+  priceId        String
+  price          Price    @relation(fields: [priceId], references: [id], onDelete: Cascade)
+  status         String   @default("pending") // e.g., 'pending', 'success', 'failed'
+  reference      String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+}
+
+
+
+// model Paystack {
+//   id                String  @id @default(uuid())
+//   accessCode        String
+//   authorizationUrl  String
+//   reference         String
+//   metadata          String 
+// }
+
+
+model ChatRoom {
+  id         String   @id @default(uuid())
+  event_id   String
+  event_name String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  messages   ChatMessage[]
+  members    Attendee[]
+  deletedAt       DateTime?
+
+  event      Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id            String   @id @default(uuid())
+  chat_room_id  String
+  attendee_id   String
+  message       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt       DateTime?
+
+  chatRoom      ChatRoom @relation(fields: [chat_room_id], references: [id], onDelete: Cascade)
+  attendee      Attendee @relation(fields: [attendee_id], references: [id])
+}
+
+
+// model ChatRoomAttendees {
+//   chat_room_id  String   @id @default(uuid())
+//   attendee_id   String
+//   createdAt     DateTime @default(now())
+//   updatedAt     DateTime @updatedAt
+//   deletedAt       DateTime?
+
+//   chatRoom      ChatRoom @relation(fields: [chat_room_id], references: [id])
+//   attendee      Attendee @relation(fields: [attendee_id], references: [id])
+// }
+
+
+// model EventChat {
+//   id          String     @id @default(uuid())
+//   eventId     String
+//   event       Event      @relation(fields: [eventId], references: [id])
+//   attendeeId  String
+//   attendee    Attendee   @relation(fields: [attendeeId], references: [id]) 
+//   ip          String
+//   message     String
+//   image       String
+// }
